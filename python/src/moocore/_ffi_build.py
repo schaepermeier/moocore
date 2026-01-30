@@ -24,6 +24,7 @@ headers = """
 #include "nondominated.h"
 #include "epsilon.h"
 #include "eaf.h"
+#include "exact_r2.h"
 #include "whv.h"
 #include "whv_hype.h"
 #include "hvapprox.h"
@@ -33,6 +34,7 @@ sources = [
     "eaf.c",
     "eaf3d.c",
     "eafdiff.c",
+    "exact_r2.c",
     "hv.c",
     "hvapprox.c",
     "hv3dplus.c",

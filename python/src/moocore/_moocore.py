@@ -2733,3 +2733,44 @@ def apply_within_sets(
     if not shorter:
         res = res.take(np.concatenate(idx).argsort(), axis=0)
     return res
+
+def _exact_r2(data: ArrayLike, ref: ArrayLike) -> float:
+    data_p, npoints, nobj = np2d_to_double_array(
+        data, ctype_shape=("size_t", "uint_fast8_t")
+    )
+    ref_buf = ffi.from_buffer("double []", ref)
+    r2 = lib.exact_r2(data_p, npoints, nobj, ref_buf)
+    if r2 < 0:
+        raise MemoryError("memory allocation failed")
+    return r2
+
+def exact_r2(
+    data: ArrayLike,
+    /,
+    ref: ArrayLike,
+    *,
+    maximise: bool | Sequence[bool] = False,
+) -> float:
+    # Convert to numpy.array in case the user provides a list.  We use
+    # np.asarray to convert it to floating-point, otherwise if a user inputs
+    # something like ref = np.array([10, 10]) then numpy would interpret it as
+    # an int array.
+    data, data_copied = asarray_maybe_copy(data)
+    nobj = data.shape[1]
+    # Make sure it is a 1D array of length nobj.
+    ref = array_1d_of_length_n(np.asarray(ref, dtype=float), nobj)
+    if nobj != ref.shape[0]:
+        raise ValueError(
+            f"data and ref need to have the same number of objectives ({nobj} != {ref.shape[0]})"
+        )
+
+    maximise = _parse_maximise(maximise, nobj)
+    # FIXME: Do this in C.
+    if maximise.any():
+        if not data_copied:
+            data = data.copy()
+        data[:, maximise] = -data[:, maximise]
+        ref = ref.copy()
+        ref[maximise] = -ref[maximise]
+
+    return _exact_r2(data, ref)
